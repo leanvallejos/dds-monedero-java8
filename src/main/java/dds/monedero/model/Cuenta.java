@@ -36,7 +36,7 @@ public class Cuenta {
 
     validarMaximoDepositosDiario();
 
-    agregarMovimiento(LocalDate.now(), cuanto, true);
+    agregarMovimiento(LocalDate.now(), cuanto, new Deposito());
    }
 
   public void sacar(double cuanto) {
@@ -47,7 +47,7 @@ public class Cuenta {
 
     validarExtraccionMaximaDiaria(cuanto);
 
-    agregarMovimiento(LocalDate.now(), cuanto, false);
+    agregarMovimiento(LocalDate.now(), cuanto, new Extraccion());
   }
 
   public void validarMontoIngresado(double cuanto){
@@ -80,16 +80,12 @@ public class Cuenta {
 
   }
 
-  public void agregarMovimiento(LocalDate fecha, double cuanto, boolean esDeposito) {
-    Movimiento movimiento = new Movimiento(fecha, cuanto, esDeposito);
+  public void agregarMovimiento(LocalDate fecha, double cuanto, TipoMovimiento tipo) {
+    Movimiento movimiento = new Movimiento(fecha, cuanto, tipo);
     historialMovimientos.agregar(movimiento);
 
-    if(esDeposito){
-      this.saldo =+ cuanto;
-    }
-    else {
-      this.saldo =- cuanto;
-    }
+    saldo =+ tipo.calculoParaSaldo(cuanto);
+
   }
 
   public double getSaldo() {
