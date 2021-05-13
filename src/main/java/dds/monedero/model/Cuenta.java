@@ -9,24 +9,28 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Cuenta { //Large class /God class, ya que la responsabilidad de la lista de movimientos se puede delegar a otro objeto
+public class Cuenta {
 
-  private double saldo = 0;
-  private List<Movimiento> movimientos = new ArrayList<>();
+  private double saldo;
+  private HistorialMovimientos historialMovimientos;
+  private double limiteDepositosDiario = 3;
+  private double cantidadMaximaExtraccion = 1000;
 
   public Cuenta() {
     saldo = 0;
-  } //aca nose porque hace = 0 si ya tiene el atributo saldo = 0
+    historialMovimientos = new HistorialMovimientos();
+  }
 
   public Cuenta(double montoInicial) {
     saldo = montoInicial;
-  } //este metodo junto con la de arriba se puede abstraer con un constructor
-
-  public void setMovimientos(List<Movimiento> movimientos) {
-    this.movimientos = movimientos;
+    historialMovimientos = new HistorialMovimientos();
   }
 
-  public void poner(double cuanto) { //Long method
+  public void setHistorialMovimientos(HistorialMovimientos historialMovimientos) {
+    this.historialMovimientos = historialMovimientos;
+  }
+
+  public void poner(double cuanto) {
 
     validarMontoIngresado(cuanto);
 
@@ -53,23 +57,24 @@ public class Cuenta { //Large class /God class, ya que la responsabilidad de la 
   }
 
   public void validarMaximoDepositosDiario(){
-    if (getMovimientos().stream().filter(movimiento -> movimiento.isDeposito()).count() >= 3) { // Message chains, aca hay mucho acomplamiento, deberia pasarle el mensaje a movimientos para que si supero los 3 depositos
-      throw new MaximaCantidadDepositosException("Ya excedio los " + 3 + " depositos diarios"); //Ese 3 podria ser una variable MaximoDepositos, ayudaria en caso de que en un futuro cambie, pero en este codigo aumentaria la complejidad
+
+    if (this.historialMovimientos.cantidadDepositosDeHoy() >= this.limiteDepositosDiario) {
+      throw new MaximaCantidadDepositosException("Ya excedio los " + this.limiteDepositosDiario + " depositos diarios");
     }
   }
 
   public void validarExtraccionConSaldo(double cuanto){
-    if (getSaldo() - cuanto < 0) { //aca this.saldo()
-      throw new SaldoMenorException("No puede sacar mas de " + getSaldo() + " $"); //aca tambien, y se podria abstraer en una validacion
+    if (this.saldo - cuanto < 0) { //aca this.saldo()
+      throw new SaldoMenorException("No puede sacar mas de " + this.saldo + " $");
     }
   }
 
   public void validarExtraccionMaximaDiaria(double cuanto){
 
-    double montoExtraidoHoy = getMontoExtraidoA(LocalDate.now());
-    double limite = 1000 - montoExtraidoHoy;
+    double montoExtraidoHoy = this.historialMovimientos.montoExtraidoElDia(LocalDate.now());
+    double limite = this.cantidadMaximaExtraccion - montoExtraidoHoy;
     if (cuanto > limite) {
-      throw new MaximoExtraccionDiarioException("No puede extraer mas de $ " + 1000 //aca tambien el 1000 podria ser un atributo por si en un futuro cambie la cantidad maxima de extraccion
+      throw new MaximoExtraccionDiarioException("No puede extraer mas de $ " + this.cantidadMaximaExtraccion
           + " diarios, límite: " + limite);
     }
 
@@ -77,7 +82,7 @@ public class Cuenta { //Large class /God class, ya que la responsabilidad de la 
 
   public void agregarMovimiento(LocalDate fecha, double cuanto, boolean esDeposito) {
     Movimiento movimiento = new Movimiento(fecha, cuanto, esDeposito);
-    movimientos.add(movimiento);
+    historialMovimientos.agregar(movimiento);
 
     if(esDeposito){
       this.saldo =+ cuanto;
@@ -87,23 +92,17 @@ public class Cuenta { //Large class /God class, ya que la responsabilidad de la 
     }
   }
 
-  public double getMontoExtraidoA(LocalDate fecha) { // Feature envy
-    return getMovimientos().stream()
-        .filter(movimiento -> !movimiento.isDeposito() && movimiento.getFecha().equals(fecha))
-        .mapToDouble(Movimiento::getMonto) //Message chains, mucho acomplamiento, hay que darle esa responsabilidad a los movimientos o a una lista de movimiento
-        .sum();
-  }
-
-  public List<Movimiento> getMovimientos() {
-    return movimientos;
-  }
-
   public double getSaldo() {
     return saldo;
+  }
+
+  public HistorialMovimientos getHistorialMovimientos(){
+    return historialMovimientos;
   }
 
   public void setSaldo(double saldo) {
     this.saldo = saldo;
   }
+
 
 }
