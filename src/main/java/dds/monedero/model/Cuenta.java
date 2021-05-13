@@ -27,36 +27,64 @@ public class Cuenta { //Large class /God class, ya que la responsabilidad de la 
   }
 
   public void poner(double cuanto) { //Long method
+
+    validarMontoIngresado(cuanto);
+
+    validarMaximoDepositosDiario();
+
+    agregarMovimiento(LocalDate.now(), cuanto, true);
+   }
+
+  public void sacar(double cuanto) {
+
+    validarMontoIngresado(cuanto);
+
+    validarExtraccionConSaldo(cuanto);
+
+    validarExtraccionMaximaDiaria(cuanto);
+
+    agregarMovimiento(LocalDate.now(), cuanto, false);
+  }
+
+  public void validarMontoIngresado(double cuanto){
     if (cuanto <= 0) {
       throw new MontoNegativoException(cuanto + ": el monto a ingresar debe ser un valor positivo");
     }
+  }
 
+  public void validarMaximoDepositosDiario(){
     if (getMovimientos().stream().filter(movimiento -> movimiento.isDeposito()).count() >= 3) { // Message chains, aca hay mucho acomplamiento, deberia pasarle el mensaje a movimientos para que si supero los 3 depositos
       throw new MaximaCantidadDepositosException("Ya excedio los " + 3 + " depositos diarios"); //Ese 3 podria ser una variable MaximoDepositos, ayudaria en caso de que en un futuro cambie, pero en este codigo aumentaria la complejidad
     }
-
-    new Movimiento(LocalDate.now(), cuanto, true).agregateA(this); //Deberia usar su propio metodo para agregar el movimiento, abstraer los dos ifs anteriores como validaciones validarCuanto y validarDepositos
   }
 
-  public void sacar(double cuanto) {
-    if (cuanto <= 0) {
-      throw new MontoNegativoException(cuanto + ": el monto a ingresar debe ser un valor positivo");
-    }
+  public void validarExtraccionConSaldo(double cuanto){
     if (getSaldo() - cuanto < 0) { //aca this.saldo()
       throw new SaldoMenorException("No puede sacar mas de " + getSaldo() + " $"); //aca tambien, y se podria abstraer en una validacion
     }
+  }
+
+  public void validarExtraccionMaximaDiaria(double cuanto){
+
     double montoExtraidoHoy = getMontoExtraidoA(LocalDate.now());
     double limite = 1000 - montoExtraidoHoy;
     if (cuanto > limite) {
       throw new MaximoExtraccionDiarioException("No puede extraer mas de $ " + 1000 //aca tambien el 1000 podria ser un atributo por si en un futuro cambie la cantidad maxima de extraccion
           + " diarios, límite: " + limite);
-    } //esto se puede abstraer
-    new Movimiento(LocalDate.now(), cuanto, false).agregateA(this); //no usa su metodo para agregar movimientos
+    }
+
   }
 
   public void agregarMovimiento(LocalDate fecha, double cuanto, boolean esDeposito) {
     Movimiento movimiento = new Movimiento(fecha, cuanto, esDeposito);
     movimientos.add(movimiento);
+
+    if(esDeposito){
+      this.saldo =+ cuanto;
+    }
+    else {
+      this.saldo =- cuanto;
+    }
   }
 
   public double getMontoExtraidoA(LocalDate fecha) { // Feature envy
